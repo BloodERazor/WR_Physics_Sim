@@ -1,0 +1,35 @@
+MOVEMENT:
+
+Arrows used to move
+forwards, backwards,
+left and right.
+
+Space used to Move up.
+
+Shift used to Move down.
+
+
+ROTATION:
+
+Q and E keys used to tilt left and right.
+
+W and S keys used to tilt forwards and backwards.
+
+A and D keys used to turn left and right.
+
+
+SPEED MODIFIERS:
+
+Ctrl used to increase speed.
+
+Alt used to decrease speed.
+P.s. Alt must be pressed
+an even amount of times
+otherwise html focus could be lost.
+
+
+MISCELLANEOUS:
+
+R key used to refresh the page.
+
+T Key for test case

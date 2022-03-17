@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Multiple Test</title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+                  /* Set the background color of the HTML page to black */ 
+                  background-color: #000000; 
+   
+                  /* Hide oversized content. This prevents the scroll bars. */ 
+                  overflow: hidden; 
+   
+                  /* Define the font and the color for the usage, which is an ordinary HTML overlay. */ 
+                  font-family: Monospace; 
+                  color: white; 
+              } 
+		</style>
+	</head>
+	<body>
+		<script src="three.js"></script>
+		<script>
+		// My Global variables-------------------------------------
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 5000 );
+			camera.userData =
+					{
+						MoveSpeed:    0.0075,
+						/*
+						  Moves the camera this many units per tick
+						  in each direction requested by the user.
+						*/
+
+						MoveUp:       	false,
+						MoveDown:     	false,
+						MoveLeft:     	false,
+						MoveRight:    	false,
+						MoveForwards: 	false,
+						MoveBackwards:	false,
+
+						MoveIncrease:  	false,
+						MoveDecrease:  	false,
+								
+						RotSpeed:     	(Math.PI/180) * 0.001,
+						/*
+						  Rotates the camera 0.05% of 1 degree per tick
+						  in each direction requested by the user.
+						*/
+				
+						RotUp:        	false,
+						RotDown:      	false,
+						RotLeft:      	false,
+						RotRight:     	false,
+						TiltLeft:     	false,
+						TiltRight:    	false
+					};
+
+			var oldTime = Date.now();
+			var delta;
+			
+			// Scene Renderer
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			document.body.appendChild( renderer.domElement );
+			
+			var gravity = -9.81;//-0.98;
+			
+			// Scene Lighting
+			scene.add( new THREE.AmbientLight( 0x505050 ) );
+			var light = new THREE.SpotLight( 0xffffff, 1.5 );
+			light.position.set( 0, 500, 2000 );
+			light.castShadow = true;
+			light.shadow = new THREE.LightShadow( new THREE.PerspectiveCamera( 50, 1, 200, 10000 ) );
+			light.shadow.bias = - 0.00022;
+			light.shadow.mapSize.width = 2048;
+			light.shadow.mapSize.height = 2048;
+			scene.add( light );
+			
+			// Initial camera position
+			camera.position.y = 200;
+			camera.position.z = 800;
+			
+			// Event Listeners
+			document.addEventListener("keydown", onDocumentKeyDown, false);  // run key functions
+			
+			document.addEventListener("keyup", onDocumentKeyUp, false);  // run key functions
+			
+			window.addEventListener( 'resize', onWindowResize, false ); // to resize the window
+			
+			var objects = [];
+			
+			init();
+
+			function init()
+			{
+				initGraphics();
+				render();
+			}
+			
+			function initGraphics()
+			{
+				// Main object array
+				objects = [];
+				
+				//Floor plane
+				var plane = new THREE.Mesh(
+								new THREE.PlaneGeometry( 5000, 5000, 1, 1),
+								new THREE.MeshLambertMaterial({color: 0xA32900})
+							  );
+				plane.rotateX(-Math.PI/2);
+				plane.position.y = 0;
+				scene.add( plane );
+
+				addObjects(false); // Add objects to scene without using the testcase
+			}
+			
+			function addObjects(testCase) // Test occurs on keyPress 't'
+			{
+				//Pre-set geometries
+				var box = new THREE.BoxGeometry( 20, 20, 20 );
+				var cone = new THREE.ConeGeometry( 20, 20, 32 );
+				var cylinder = new THREE.CylinderGeometry( 20, 20, 20, 32 );
+				var dodecahedron = new THREE.DodecahedronGeometry( 20, 0 );
+				var icosahedron = new THREE.IcosahedronGeometry( 20, 0 );
+				var octahedron = new THREE.OctahedronGeometry( 20, 0 );
+				var sphere = new THREE.SphereGeometry( 20, 16, 16 );
+				var tetrahedron = new THREE.TetrahedronGeometry( 20, 0 );
+				var torus = new THREE.TorusGeometry( 20, 5, 32, 32 );
+				var torusknot = new THREE.TorusKnotGeometry( 20, 5, 32, 32, 3, 5);
+				
+				// Used to setup each object to be added to the array and scene.
+				var geometry;
+				var geometryId;
+				var material;
+				
+				// How many objects to add to the scene
+				var objectAmount = 150;
+
+				if(testCase == true)
+				{
+					objectAmount = 2;
+				};
+
+				for (i = 0; i < objectAmount; i++)
+				{
+					geometryId = Math.round(Math.random() * 10 -0.5);
+					switch(geometryId)
+					{
+						case 0:
+						geometry = box;
+						break;
+					
+						case 1:
+						geometry = cone;
+						break;
+					
+						case 2:
+						geometry = cylinder;
+						break;
+					
+						case 3:
+						geometry = icosahedron;
+						break;
+					
+						case 4:
+						geometry = octahedron;
+						break;
+					
+						case 5:
+						geometry = sphere;
+						break;
+					
+						case 6:
+						geometry = tetrahedron;
+						break;
+					
+						case 7:
+						geometry = torus;
+						break;
+					
+						case 8:
+						geometry = torusknot;
+						break;
+
+						case 9:
+						geometry = dodecahedron;
+						break;
+					}
+
+					// Giving a object a random colour
+					material = new THREE.MeshLambertMaterial( { color: Math.random() * 0xffffff } );
+					
+					// Create object mesh
+					object = new THREE.Mesh(geometry, material);
+					
+					// Collision Sphere area
+					object.radius = 0 // Assume object is a point until proven otherwise
+
+					for (a = 0; a < object.geometry.vertices.length; a++)
+					{
+						// Calculate distance between centre and vertex
+						
+						var posRadius = object.geometry.vertices[a].distanceTo(object.position);
+						
+						// Sets the variable to the distance between the given vertex and the centre of the object						
+
+						if(posRadius > object.radius)
+						{
+							object.radius = posRadius;
+						};
+						/* 	
+							if the distance between the vertex and centre of the object is greater than
+							an earlier returned value set the radius to the new value
+						*/
+					}
+
+					if(testCase == false)
+					{
+						object.position.x = Math.random() * 1400 - 700;
+						object.position.y = Math.random() * 1000 + 60; // additional distance from floor to avoid objects under floor
+						object.position.z = Math.random() * 1000 - 500;
+					
+						object.rotation.x = Math.random() * 2 * Math.PI;
+						object.rotation.y = Math.random() * 2 * Math.PI;
+						object.rotation.z = Math.random() * 2 * Math.PI;
+					
+						object.userData.VelocityX = 20 - 40 * Math.random();
+						object.userData.VelocityY = 0;	// -----------------Allows all Y velocity to be initiated by gravity
+						object.userData.VelocityZ = 20 - 40 * Math.random();
+					}
+					else
+					{
+						object.rotation.x = 0;
+						object.rotation.y = 0;
+						object.rotation.z = 0;
+
+						if(i == 0)
+						{
+							object.position.x = 100;
+							object.position.y = 300;
+							object.position.z = 200;
+					
+							object.userData.VelocityX = -20;
+							object.userData.VelocityY = 0;	// -----------------Allows all Y velocity to be initiated by gravity
+							object.userData.VelocityZ = 30;
+						}
+						else
+						{
+							object.position.x = -100;
+							object.position.y = 300;
+							object.position.z = 500;
+					
+							object.userData.VelocityX = 20;
+							object.userData.VelocityY = 0;	// -----------------Allows all Y velocity to be initiated by gravity
+							object.userData.VelocityZ = -30;
+						}
+					}					
+
+					object.userData.AccelerationX = 0;
+					object.userData.AccelerationY = gravity;
+					object.userData.AccelerationZ = 0;
+					
+					// Allow objects to receive and cast shadows
+					object.castShadow = true;
+					object.receiveShadow = true;
+					
+					// Object added to scene
+					scene.add( object );
+					
+					objects.push( object );
+					/*
+					Stack operator "push" used here
+					to add objects to the next available index
+					in the objects array.
+					*/
+					} // END FOR
+			}//END addObjects
+			
+			function render()
+			{
+				requestAnimationFrame( render ); // 60 FPS
+				
+				for (subFrame = 0; subFrame < 5; subFrame++)
+				{
+					var newTime = Date.now(); // returns time in milliseonds
+					delta = (newTime - oldTime)/1000; // returns seconds since last subframe loop
+					
+					for (i = 0; i < objects.length; i++)
+					{
+						// Calculate Velocity
+						objects[i].userData.VelocityX += objects[i].userData.AccelerationX * delta;
+						objects[i].userData.VelocityY += objects[i].userData.AccelerationY * delta;
+						objects[i].userData.VelocityZ += objects[i].userData.AccelerationZ * delta;
+					
+						// Calculate movement (s = ut + (1/2)at^2 not used in order to save on processing)
+						objects[i].position.x += objects[i].userData.VelocityX * delta;
+						objects[i].position.y += objects[i].userData.VelocityY * delta;
+						objects[i].position.z += objects[i].userData.VelocityZ * delta;
+						//
+						for (j = i + 1; j < objects.length; j++)
+						{
+							// Check used to avoid needing to square root the difference between each object's dimensions
+							if( (Math.abs(objects[i].position.x - objects[i].position.x > objects[i].radius + objects[j].radius))||
+								(Math.abs(objects[i].position.y - objects[i].position.y > objects[i].radius + objects[j].radius))||
+								(Math.abs(objects[i].position.z - objects[i].position.z > objects[i].radius + objects[j].radius)))
+							{}
+							else
+							{
+								if
+								(//COLLISION REQUIREMENTS
+									objects[i].position.distanceTo(objects[j].position) < objects[i].radius + objects[j].radius
+								)
+								{//COLLISION RESULT 
+													// temporary storage = i
+													// i = j
+													// j = temporary storage
+									var iTempVelocity = new THREE.Vector3(objects[i].userData.VelocityX,
+														  objects[i].userData.VelocityY,
+														  objects[i].userData.VelocityZ);
+										
+									objects[i].userData.VelocityX = objects[j].userData.VelocityX;
+									objects[i].userData.VelocityY = objects[j].userData.VelocityY;
+									objects[i].userData.VelocityZ = objects[j].userData.VelocityZ;
+										
+									objects[j].userData.VelocityX = iTempVelocity.x;
+									objects[j].userData.VelocityY = iTempVelocity.y;
+									objects[j].userData.VelocityZ = iTempVelocity.z;
+								}
+							}
+						}
+
+						// AIR RESISTANCE
+						objects[i].userData.AccelerationX = -0.1 * objects[i].userData.VelocityX;
+
+						objects[i].userData.AccelerationY = gravity -0.1 * objects[i].userData.VelocityY;
+
+						objects[i].userData.AccelerationZ = -0.1 * objects[i].userData.VelocityZ;
+						
+						// CAMERA MOVEMENT, ROTATION AND SPEED MODIFIERS
+						if(camera.userData.RotUp == true && camera.userData.RotDown == false)
+						{ camera.rotateX(camera.userData.RotSpeed )}; // local YZ rotation };
+						if(camera.userData.RotUp == false && camera.userData.RotDown == true)
+						{ camera.rotateX(-camera.userData.RotSpeed )}; // local YZ rotation };
+						
+						if(camera.userData.RotLeft == true && camera.userData.RotRight == false)
+						{ camera.rotateY(camera.userData.RotSpeed )}; // local XZ rotation };
+						if(camera.userData.RotLeft == false && camera.userData.RotRight == true)
+						{ camera.rotateY(-camera.userData.RotSpeed )}; // local XZ rotation };
+							
+						if(camera.userData.TiltLeft == true && camera.userData.TiltRight == false)
+						{ camera.rotateZ(camera.userData.RotSpeed )}; // local XY rotation };
+						if(camera.userData.TiltLeft == false && camera.userData.TiltRight == true)
+						{ camera.rotateZ(-camera.userData.RotSpeed )}; // local XY rotation };
+							
+						if(camera.userData.MoveForwards == true && camera.userData.MoveBackwards == false)
+						{ camera.translateZ (-camera.userData.MoveSpeed)}; // local Z Movement };
+						if(camera.userData.MoveForwards == false && camera.userData.MoveBackwards == true)
+						{ camera.translateZ (camera.userData.MoveSpeed)}; // local Z Movement };
+						
+						if(camera.userData.MoveLeft == true && camera.userData.MoveRight == false)
+						{ camera.translateX (-camera.userData.MoveSpeed)}; // local X Movement };
+						if(camera.userData.MoveLeft == false && camera.userData.MoveRight == true)
+						{ camera.translateX (camera.userData.MoveSpeed)}; // local X Movement };
+						
+						if(camera.userData.MoveUp == true && camera.userData.MoveDown == false)
+						{ camera.translateY (camera.userData.MoveSpeed)}; // local Y Movement };
+						if(camera.userData.MoveUp == false && camera.userData.MoveDown == true)
+						{ camera.translateY (-camera.userData.MoveSpeed)}; // local Y Movement };
+							
+						if(camera.userData.MoveIncrease == true && camera.userData.MoveDecrease == false)
+						{camera.userData.MoveSpeed += 0.0000005};
+						if(camera.userData.MoveIncrease == false && camera.userData.MoveDecrease == true)
+						{
+							// To make sure the camera remains fairly quick
+							if(camera.userData.MoveSpeed > 0.001)
+							{
+								camera.userData.MoveSpeed -= 0.0000005;
+							}
+						};
+					}
+					// Used to help calculate delta
+					oldTime = newTime;
+				}
+				
+				// Avoiding unecessary data use if velocity is miniscule and also bouncing off of the floor
+				for (i = 0; i < objects.length; i++)
+				{
+					if(Math.abs(objects[i].userData.VelocityX) < 0.01)
+					{
+						objects[i].userData.VelocityX = 0;
+					}
+					if(Math.abs(objects[i].userData.VelocityZ) < 0.01)
+					{
+						objects[i].userData.VelocityZ = 0;
+					}
+					if(Math.abs(objects[i].userData.VelocityY) < 0.01)
+					{
+						objects[i].userData.VelocityY = 0;
+					}
+					else
+					{
+						if(objects[i].position.y - objects[i].radius < 0)
+						{
+							objects[i].userData.VelocityY = 0.75 * Math.abs(objects[i].userData.VelocityY);
+						};
+					};
+				}
+				// Render next frame
+				renderer.render( scene, camera );
+			}
+			
+			// Resize viewport if window is resized
+			function onWindowResize()
+			{
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			function onDocumentKeyDown(event)
+			{ 
+                // Respond to pressed key 
+				switch(event.which)
+				{
+					case 87:// 'w' key
+					camera.userData.RotUp = true;
+					break;
+				 
+					case 83:// 's' key
+					camera.userData.RotDown = true;
+					break;
+				 
+					case 65:// 'a' key
+					camera.userData.RotLeft = true;
+					break;
+				 
+					case 68:// 'd' key
+					camera.userData.RotRight = true;
+					break;
+
+					case 81:// 'q' key
+					camera.userData.TiltLeft = true;
+					break;
+
+					case 69:// 'e' key
+					camera.userData.TiltRight = true;
+					break;
+					
+					case 37:// 'left' key
+					camera.userData.MoveLeft = true;
+					break;
+					
+					case 38:// 'up' key
+					camera.userData.MoveForwards = true;
+					break;
+					
+					case 39:// 'right' key
+					camera.userData.MoveRight = true;
+					break;
+					
+					case 40:// 'down' key
+					camera.userData.MoveBackwards = true;
+					break;
+					
+					case 32:// 'space' key
+					camera.userData.MoveUp = true;
+					break;
+					
+					case 16:// 'shift' key
+					camera.userData.MoveDown = true;
+					break;
+					
+					case 82:// 'r' key
+					location.reload(); // alternative to refreshing the page.
+					break;
+					
+					case 17:// 'ctrl' key
+					camera.userData.MoveIncrease = true;
+					break;
+					
+					case 18:// 'alt' key
+					camera.userData.MoveDecrease = true;
+					break;
+					/*
+					Note: Alt must be pressed an even amount of times
+					      or focus will be lost and this may lead
+					      to automatic motion as well...
+					*/
+
+					case 84: // 't' testCase
+					for (i =  objects.length - 1; i > -1; i--)
+					{
+						scene.remove(objects.pop());
+						// stack operation 'pop' used here
+						// to remove objects from the array and the scene
+					}
+					/*
+					Due to camera movement being subframed
+					along with the objects incorrectly
+					this allows suitably fluid movements during a test
+					*/
+					camera.userData.MoveSpeed = 0.2;
+					camera.userData.RotSpeed = (Math.PI/180) * 0.05
+					
+					// execute collision test
+					addObjects(true);
+					break;
+
+				}; // 48-57  "0-9"
+			};
+			
+			function onDocumentKeyUp(event)
+			{
+                // Respond to released key
+				switch(event.which)
+				{
+				 
+					case 87:// 'w' key
+					camera.userData.RotUp = false;
+					break;
+				 
+					case 83:// 's' key
+					camera.userData.RotDown = false;
+					break;
+				 
+					case 65:// 'a' key
+					camera.userData.RotLeft = false;
+					break;
+				 
+					case 68:// 'd' key
+					camera.userData.RotRight = false;
+					break;
+
+					case 81:// 'q' key
+					camera.userData.TiltLeft = false;
+					break;
+
+					case 69:// 'e' key
+					camera.userData.TiltRight = false;
+					break;
+					
+					case 37:// 'left' key
+					camera.userData.MoveLeft = false;
+					break;
+					
+					case 38:// 'up' key
+					camera.userData.MoveForwards = false;
+					break;
+					
+					case 39:// 'right' key
+					camera.userData.MoveRight = false;
+					break;
+					
+					case 40:// 'down' key
+					camera.userData.MoveBackwards = false;
+					break;
+					
+					case 32:// 'space' key
+					camera.userData.MoveUp = false;
+					break;
+					
+					case 16:// 'shift' key
+					camera.userData.MoveDown = false;
+					break;
+
+					case 17:// 'ctrl' key
+					camera.userData.MoveIncrease = false;
+					break;
+					
+					case 18:// 'alt' key
+					camera.userData.MoveDecrease = false;
+					break;
+				 
+				};
+			};
+		</script>
+	</body>
+</html>
